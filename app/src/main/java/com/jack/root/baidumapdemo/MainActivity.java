@@ -8,7 +8,13 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.AttributeSet;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.baidu.location.BDAbstractLocationListener;
 import com.baidu.location.BDLocation;
@@ -16,16 +22,25 @@ import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
 import com.baidu.mapapi.SDKInitializer;
 import com.baidu.mapapi.map.BaiduMap;
+import com.baidu.mapapi.map.BitmapDescriptor;
+import com.baidu.mapapi.map.BitmapDescriptorFactory;
+import com.baidu.mapapi.map.InfoWindow;
+import com.baidu.mapapi.map.InfoWindow.OnInfoWindowClickListener;
 import com.baidu.mapapi.map.MapStatus;
+import com.baidu.mapapi.map.MapStatusUpdateFactory;
 import com.baidu.mapapi.map.MapView;
+import com.baidu.mapapi.map.Marker;
+import com.baidu.mapapi.map.MarkerOptions;
 import com.baidu.mapapi.map.MyLocationConfiguration;
 import com.baidu.mapapi.map.MyLocationData;
+import com.baidu.mapapi.map.OverlayOptions;
 import com.baidu.mapapi.model.LatLng;
 import com.yanzhenjie.permission.AndPermission;
 import com.yanzhenjie.permission.PermissionListener;
 import com.yanzhenjie.permission.Rationale;
 import com.yanzhenjie.permission.RationaleListener;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity  implements SensorEventListener {
@@ -41,6 +56,7 @@ public class MainActivity extends AppCompatActivity  implements SensorEventListe
     private SensorManager mSensorManager;
 
     private final static String TAG = "Map";
+    boolean isFirstLoc = true; // 是否首次定位
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -110,6 +126,8 @@ public class MainActivity extends AppCompatActivity  implements SensorEventListe
         Log.d(TAG, "leftUpLatLng.longitude: " + leftUpLatLng.longitude);
         Log.d(TAG, "RightDownLatLng.latitude: " + RightDownLatLng.latitude);
         Log.d(TAG, "RightDownLatLng.longitude: " + RightDownLatLng.longitude);
+
+        setMarkers();
     }
 
     private PermissionListener listener = new PermissionListener() {
@@ -165,20 +183,28 @@ public class MainActivity extends AppCompatActivity  implements SensorEventListe
                 getPositionData();
             }
         });
+
+        // set marker clickListener
+        mBaiduMap.setOnMarkerClickListener(new BaiduMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                return false;
+            }
+        });
     }
 
     // 全球定位
     private void registerLocationListener() {
         myListener = new MyLocationListener();
-
-        mLocationClient = new LocationClient(getApplicationContext());
+        mLocationClient = new LocationClient(this);
+        mLocationClient.registerLocationListener(myListener);
 
         LocationClientOption option = new LocationClientOption();
-        option.setNeedDeviceDirect(true);
-
+        option.setOpenGps(true); // 打开gps
+        option.setCoorType("bd09ll"); // 设置坐标类型
+        option.setScanSpan(1000);
+        //option.setNeedDeviceDirect(true);
         mLocationClient.setLocOption(option);
-        //声明LocationClient类
-        mLocationClient.registerLocationListener(myListener);
         mLocationClient.start();
     }
 
@@ -216,6 +242,12 @@ public class MainActivity extends AppCompatActivity  implements SensorEventListe
             Log.d("baidu map", "latitude: " + location.getLatitude());
             Log.d("baidu map", "longitude: " + location.getLongitude());
             Log.d("baidu map", "Direction: " + location.getDirection());
+            Log.d("baidu map", "adius: " + location.getRadius());
+            Log.d("baidu map", "mCurrentDirection: " + mCurrentDirection);
+
+            if (!mBaiduMap.isMyLocationEnabled() || myListener == null) {
+                return;
+            }
 
             MyLocationData.Builder builder = new MyLocationData.Builder()
                     .accuracy(location.getRadius())
@@ -224,14 +256,114 @@ public class MainActivity extends AppCompatActivity  implements SensorEventListe
                     .longitude(location.getLongitude());
             MyLocationData data = builder.build();
             mBaiduMap.setMyLocationData(data);
+
+            if (isFirstLoc) {
+                isFirstLoc = false;
+                LatLng ll = new LatLng(location.getLatitude(), location.getLongitude());
+                MapStatus mapStatus = new MapStatus.Builder()
+                        .target(ll).zoom(14.0f).build();
+                mBaiduMap.animateMapStatus(MapStatusUpdateFactory.newMapStatus(mapStatus));
+            }
         }
+    }
+
+    /**
+     Desc set markers
+     18-1-19:上午10:12
+     Author jack
+    */
+    private void setMarkers() {
+
+        List<InfoBean> list = testData();
+        /*//创建OverlayOptions的集合
+
+        List<OverlayOptions> options = new ArrayList<OverlayOptions>();
+        //设置坐标点
+
+        LatLng point1 = new LatLng(23.006272, 113.358076);
+        LatLng point2 = new LatLng(23.007272, 113.368076);
+
+        //创建OverlayOptions属性
+
+        BadgeView badgeView = new BadgeView(this);
+        badgeView.setmNumText("6");
+        badgeView.setLayoutParams(new LinearLayout.LayoutParams(60, 60));
+        badgeView.setImageResource(R.drawable.ic_launcher_background);
+
+        BitmapDescriptor bitmapDescriptor1 = BitmapDescriptorFactory.fromView(badgeView);
+        OverlayOptions option1 =  new MarkerOptions()
+                .position(point1)
+                .animateType(MarkerOptions.MarkerAnimateType.grow)
+                .icon(bitmapDescriptor1);
+        OverlayOptions option2 =  new MarkerOptions()
+                .position(point2)
+                .animateType(MarkerOptions.MarkerAnimateType.jump)
+                .icon(bitmapDescriptor1);
+        //将OverlayOptions添加到list
+        options.add(option1);
+        options.add(option2);
+        //在地图上批量添加
+        mBaiduMap.addOverlays(options);*/
+
+        //定义用于显示该InfoWindow的坐标点
+       /* //创建InfoWindow展示的view
+        BadgeView button = new BadgeView(getApplicationContext(), point);
+        button.setmNumText("6");
+
+        ImageView imageView = new ImageView(this);
+        imageView.setLayoutParams(new LinearLayout.LayoutParams(60, 60));
+        imageView.setImageResource(R.drawable.hint_map);
+        BadgeTextView badgeTextView = new BadgeTextView(this);
+        badgeTextView.setTargetView(imageView);*/
+
+        for (final InfoBean bean : list) {
+            View view = getView();
+            ImageView imageView = view.findViewById(R.id.iv_res);
+            TextView textView = view.findViewById(R.id.tv_content);
+            textView.setText(bean.getNum());
+            GlideUtil.showImgByUrl(this, null, bean.getUri(), imageView);
+
+            //创建InfoWindow , 传入 view， 地理坐标， y 轴偏移量
+            BitmapDescriptor bitmapDescriptor = BitmapDescriptorFactory.fromView(view);
+            InfoWindow mInfoWindow = new InfoWindow(bitmapDescriptor, bean.getLatLng(), 0, new InfoWindow.OnInfoWindowClickListener() {
+                @Override
+                public void onInfoWindowClick() {
+                    Log.d(TAG, "onClick id: " + bean.getId());
+                }
+            });
+            //显示InfoWindow
+            mBaiduMap.showInfoWindow(mInfoWindow);
+        }
+    }
+
+    private List<InfoBean> testData() {
+        List<InfoBean> list = new ArrayList<>();
+        LatLng pt = new LatLng(23.006272, 113.358076);
+        list.add(new InfoBean("http://img1.imgtn.bdimg.com/it/u=1466285027,1159439966&fm=27&gp=0.jpg", pt, "10"));
+
+        pt = new LatLng(23.016272, 113.368076);
+        list.add(new InfoBean(1, "http://img2.imgtn.bdimg.com/it/u=2239146502,165013516&fm=27&gp=0.jpg", pt, "1000"));
+
+        pt = new LatLng(23.036272, 113.378076);
+        list.add(new InfoBean(2, "http://img3.imgtn.bdimg.com/it/u=2194466256,3369833539&fm=27&gp=0.jpg", pt, "3"));
+
+        pt = new LatLng(23.046272, 113.358076);
+        list.add(new InfoBean(3, "http://img3.imgtn.bdimg.com/it/u=4166721891,1503444760&fm=27&gp=0.jpg", pt, "8"));
+        return list;
+    }
+
+
+    private View getView() {
+        View view = getLayoutInflater().inflate(R.layout.badge_item, null);
+        return view;
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         mSensorManager.unregisterListener(this);
-
+        // 关闭定位图层
+        mBaiduMap.setMyLocationEnabled(false);
         //在activity执行onDestroy时执行mMapView.onDestroy()，实现地图生命周期管理
         mBaiduMapView.onDestroy();
         mLocationClient.stop();
