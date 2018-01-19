@@ -188,6 +188,8 @@ public class MainActivity extends AppCompatActivity  implements SensorEventListe
         mBaiduMap.setOnMarkerClickListener(new BaiduMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
+                InfoBean bean = marker.getExtraInfo().getParcelable("info");
+                Log.d(TAG, "you click id: " + bean.getId());
                 return false;
             }
         });
@@ -273,49 +275,7 @@ public class MainActivity extends AppCompatActivity  implements SensorEventListe
      Author jack
     */
     private void setMarkers() {
-
         List<InfoBean> list = testData();
-        /*//创建OverlayOptions的集合
-
-        List<OverlayOptions> options = new ArrayList<OverlayOptions>();
-        //设置坐标点
-
-        LatLng point1 = new LatLng(23.006272, 113.358076);
-        LatLng point2 = new LatLng(23.007272, 113.368076);
-
-        //创建OverlayOptions属性
-
-        BadgeView badgeView = new BadgeView(this);
-        badgeView.setmNumText("6");
-        badgeView.setLayoutParams(new LinearLayout.LayoutParams(60, 60));
-        badgeView.setImageResource(R.drawable.ic_launcher_background);
-
-        BitmapDescriptor bitmapDescriptor1 = BitmapDescriptorFactory.fromView(badgeView);
-        OverlayOptions option1 =  new MarkerOptions()
-                .position(point1)
-                .animateType(MarkerOptions.MarkerAnimateType.grow)
-                .icon(bitmapDescriptor1);
-        OverlayOptions option2 =  new MarkerOptions()
-                .position(point2)
-                .animateType(MarkerOptions.MarkerAnimateType.jump)
-                .icon(bitmapDescriptor1);
-        //将OverlayOptions添加到list
-        options.add(option1);
-        options.add(option2);
-        //在地图上批量添加
-        mBaiduMap.addOverlays(options);*/
-
-        //定义用于显示该InfoWindow的坐标点
-       /* //创建InfoWindow展示的view
-        BadgeView button = new BadgeView(getApplicationContext(), point);
-        button.setmNumText("6");
-
-        ImageView imageView = new ImageView(this);
-        imageView.setLayoutParams(new LinearLayout.LayoutParams(60, 60));
-        imageView.setImageResource(R.drawable.hint_map);
-        BadgeTextView badgeTextView = new BadgeTextView(this);
-        badgeTextView.setTargetView(imageView);*/
-
         for (final InfoBean bean : list) {
             View view = getView();
             ImageView imageView = view.findViewById(R.id.iv_res);
@@ -323,16 +283,20 @@ public class MainActivity extends AppCompatActivity  implements SensorEventListe
             textView.setText(bean.getNum());
             GlideUtil.showImgByUrl(this, null, bean.getUri(), imageView);
 
-            //创建InfoWindow , 传入 view， 地理坐标， y 轴偏移量
-            BitmapDescriptor bitmapDescriptor = BitmapDescriptorFactory.fromView(view);
-            InfoWindow mInfoWindow = new InfoWindow(bitmapDescriptor, bean.getLatLng(), 0, new InfoWindow.OnInfoWindowClickListener() {
-                @Override
-                public void onInfoWindowClick() {
-                    Log.d(TAG, "onClick id: " + bean.getId());
-                }
-            });
-            //显示InfoWindow
-            mBaiduMap.showInfoWindow(mInfoWindow);
+            //构建Marker图标
+            BitmapDescriptor bitmap = BitmapDescriptorFactory
+                    .fromView(view);
+            //构建MarkerOption，用于在地图上添加Marker
+            OverlayOptions option = new MarkerOptions()
+                    .position(bean.getLatLng())
+                    .icon(bitmap);
+            //在地图上添加Marker，并显示
+            Marker marker = (Marker) mBaiduMap.addOverlay(option);
+
+            //set data
+            Bundle bundle = new Bundle();
+            bundle.putParcelable("info", bean);
+            marker.setExtraInfo(bundle);
         }
     }
 
@@ -351,7 +315,6 @@ public class MainActivity extends AppCompatActivity  implements SensorEventListe
         list.add(new InfoBean(3, "http://img3.imgtn.bdimg.com/it/u=4166721891,1503444760&fm=27&gp=0.jpg", pt, "8"));
         return list;
     }
-
 
     private View getView() {
         View view = getLayoutInflater().inflate(R.layout.badge_item, null);

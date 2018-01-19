@@ -1,6 +1,7 @@
 package com.jack.root.baidumapdemo;
 
 import android.os.Parcel;
+import android.os.Parcelable;
 
 import com.baidu.mapapi.model.LatLng;
 
@@ -10,11 +11,30 @@ import com.baidu.mapapi.model.LatLng;
  * Desc:
  */
 
-public class InfoBean {
+public class InfoBean implements Parcelable {
     private int id;
     private String uri;
     private LatLng latLng;
     private String num;
+
+    protected InfoBean(Parcel in) {
+        id = in.readInt();
+        uri = in.readString();
+        latLng = in.readParcelable(LatLng.class.getClassLoader());
+        num = in.readString();
+    }
+
+    public static final Creator<InfoBean> CREATOR = new Creator<InfoBean>() {
+        @Override
+        public InfoBean createFromParcel(Parcel in) {
+            return new InfoBean(in);
+        }
+
+        @Override
+        public InfoBean[] newArray(int size) {
+            return new InfoBean[size];
+        }
+    };
 
     public int getId() {
         return id;
@@ -59,5 +79,18 @@ public class InfoBean {
 
     public void setNum(String num) {
         this.num = num;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel parcel, int i) {
+        parcel.writeInt(id);
+        parcel.writeString(uri);
+        parcel.writeParcelable(latLng, i);
+        parcel.writeString(num);
     }
 }
