@@ -68,6 +68,8 @@ public class MainActivity extends AppCompatActivity  implements SensorEventListe
         setContentView(R.layout.activity_main);
 
         mBaiduMapView = findViewById(R.id.bmapView);
+        mBaiduMapView.removeViewAt(2);  // no display + -
+
         mBaiduMap = mBaiduMapView.getMap();
 
         initBaiduMap();
@@ -102,34 +104,6 @@ public class MainActivity extends AppCompatActivity  implements SensorEventListe
                 .start();
     }
 
-    private void getPositionData() {
-        //
-        /**
-         double leftUpLat = reqData.optInt("leftUpLat");
-         double leftUpLong = reqData.optInt("leftUpLong");
-         double rightDownLat = reqData.optInt("rightDownLat");
-         double rightDownLong = reqData.optInt("rightDownLong");
-         */
-
-        int left = mBaiduMapView.getLeft();
-        int right = mBaiduMapView.getRight();
-        int top = mBaiduMapView.getTop();
-        int bottom = mBaiduMapView.getBottom();
-
-        Point leftUpPoint = new Point(left, top);
-        Point rightDownPoint = new Point(right, bottom);
-
-        LatLng leftUpLatLng = mBaiduMap.getProjection().fromScreenLocation(leftUpPoint);
-        LatLng RightDownLatLng = mBaiduMap.getProjection().fromScreenLocation(rightDownPoint);
-
-        Log.d(TAG, "leftUpLatLng.latitude: " + leftUpLatLng.latitude);
-        Log.d(TAG, "leftUpLatLng.longitude: " + leftUpLatLng.longitude);
-        Log.d(TAG, "RightDownLatLng.latitude: " + RightDownLatLng.latitude);
-        Log.d(TAG, "RightDownLatLng.longitude: " + RightDownLatLng.longitude);
-
-        setMarkers();
-    }
-
     private PermissionListener listener = new PermissionListener() {
         @Override
         public void onSucceed(int requestCode, List<String> grantedPermissions) {
@@ -151,7 +125,7 @@ public class MainActivity extends AppCompatActivity  implements SensorEventListe
 
     private void initBaiduMap() {
         mBaiduMap.setMyLocationEnabled(true);
-        mBaiduMap.setMyLocationConfiguration(new MyLocationConfiguration(MyLocationConfiguration.LocationMode.NORMAL, true, null));
+        // mBaiduMap.setMyLocationConfiguration(new MyLocationConfiguration(MyLocationConfiguration.LocationMode.FOLLOWING, true, null));
 
         // 等地图status完成后，获取屏幕的坐标转出经纬度
         mBaiduMap.setOnMapStatusChangeListener(new BaiduMap.OnMapStatusChangeListener() {
@@ -193,6 +167,46 @@ public class MainActivity extends AppCompatActivity  implements SensorEventListe
                 return false;
             }
         });
+    }
+
+    private void getPositionData() {
+        /**
+         double leftUpLat = reqData.optInt("leftUpLat");
+         double leftUpLong = reqData.optInt("leftUpLong");
+         double rightDownLat = reqData.optInt("rightDownLat");
+         double rightDownLong = reqData.optInt("rightDownLong");
+         */
+
+        int statusBarHeight = getBarHeight();
+
+        int left = mBaiduMapView.getLeft();
+        int right = mBaiduMapView.getRight();
+        int top = mBaiduMapView.getTop() + statusBarHeight;
+        int bottom = mBaiduMapView.getBottom() + statusBarHeight;
+
+        Point leftUpPoint = new Point(left, top);
+        Point rightDownPoint = new Point(right, bottom);
+
+        LatLng leftUpLatLng = mBaiduMap.getProjection().fromScreenLocation(leftUpPoint);
+        LatLng RightDownLatLng = mBaiduMap.getProjection().fromScreenLocation(rightDownPoint);
+
+        Log.d(TAG, "leftUpLatLng.latitude: " + leftUpLatLng.latitude);
+        Log.d(TAG, "leftUpLatLng.longitude: " + leftUpLatLng.longitude);
+        Log.d(TAG, "RightDownLatLng.latitude: " + RightDownLatLng.latitude);
+        Log.d(TAG, "RightDownLatLng.longitude: " + RightDownLatLng.longitude);
+
+        setMarkers();
+    }
+
+    private int getBarHeight() {
+        int statusBarHeight1 = -1;
+        //获取status_bar_height资源的ID
+        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            //根据资源ID获取响应的尺寸值
+            statusBarHeight1 = getResources().getDimensionPixelSize(resourceId);
+        }
+        return statusBarHeight1;
     }
 
     // 全球定位
@@ -252,7 +266,7 @@ public class MainActivity extends AppCompatActivity  implements SensorEventListe
             }
 
             MyLocationData.Builder builder = new MyLocationData.Builder()
-                    .accuracy(location.getRadius())
+                    .accuracy(0)  // 去掉定位图层的定位图标的光圈
                     .direction(mCurrentDirection)
                     .latitude(location.getLatitude())
                     .longitude(location.getLongitude());
